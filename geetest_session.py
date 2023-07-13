@@ -98,10 +98,10 @@ class GSession:
                 self.res = Resp.TIMEOUT
                 return False
             res = json.loads(resp.group(1))
-            if res["data"]["result"] == "success":
-                self.validate = res["data"]["validate"]
+            if "success" in res:
+                self.validate = res["validate"]
                 return True
-            elif res["data"]["result"] == "slide":
+            elif "data" in res:
                 self.res = Resp.SLIDE
                 return True
             else:
@@ -171,6 +171,8 @@ class GSession:
                 "gt": self.gt,
                 "challenge": self.challenge,
                 "lang": "zh-cn",
+                "$_BCX": 3,
+                "client_type": "web_mobile",
                 "w": get_slide_w(
                     self.gt, self.challenge, get_s(), self.offset, self.track
                 ),
@@ -189,3 +191,4 @@ class GSession:
             and self.slide()
         )
         return self.challenge, self.validate
+    
