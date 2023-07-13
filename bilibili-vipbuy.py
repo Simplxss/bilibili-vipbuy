@@ -11,7 +11,6 @@ def main():
     projectId = int(input("会展ID: "))
     count = int(input("抢几张票: "))
 
-
     json0 = requests.request(
         "GET",
         "https://show.bilibili.com/api/ticket/project/get",
@@ -38,8 +37,7 @@ def main():
     payMoney = ticket["price"]
 
     bilibili = BilibiliQRcode()
-    bilibili.login()
-    cookies = bilibili.get_sso_login(2)
+    cookies = bilibili.login()
 
     s = requests.session()
     s.cookies = utils.cookiejar_from_dict(cookies)
