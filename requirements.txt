@@ -1,2 +1,4 @@
 requests >= 2.18.4
 qrcode >= 7.4.2
+Pillow >= 10.0.0
+PyExecJS >=v1.5.1

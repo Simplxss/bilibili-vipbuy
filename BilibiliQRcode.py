@@ -88,10 +88,3 @@ class BilibiliQRcode:
         if res["code"] != 0:
             return ""
         return res["data"]
-
-
-# 示例用法
-bilibili = BilibiliQRcode()
-bilibili.login()
-print(bilibili.get_user_info())
-print(bilibili.get_sso_login(0))

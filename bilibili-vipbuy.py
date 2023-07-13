@@ -5,14 +5,14 @@ import requests
 from requests import utils
 
 from BilibiliQRcode import BilibiliQRcode
+from geetest_session import GSession
 
 
 def main():
     projectId = int(input("会展ID: "))
     count = int(input("抢几张票: "))
 
-    json0 = requests.request(
-        "GET",
+    json0 = requests.get(
         "https://show.bilibili.com/api/ticket/project/get",
         params={"version": 134, "id": projectId, "project_id": projectId},
     ).json()
@@ -42,8 +42,7 @@ def main():
     s = requests.session()
     s.cookies = utils.cookiejar_from_dict(cookies)
 
-    json0 = s.request(
-        "GET",
+    json0 = s.get(
         "https://show.bilibili.com/api/ticket/buyer/list",
         params={"project_id": projectId, "src": "ticket"},
     ).json()
@@ -83,8 +82,7 @@ def main():
 
     while True:
         try:
-            json1 = requests.request(
-                "GET",
+            json1 = requests.get(
                 "https://show.bilibili.com/api/ticket/project/get",
                 params={"version": 134, "id": projectId, "project_id": projectId},
             ).json()
@@ -97,8 +95,7 @@ def main():
                             if j["clickable"]:
                                 print(time.ctime(), "有票了")
                                 while True:
-                                    json2 = s.request(
-                                        "POST",
+                                    json2 = s.post(
                                         "https://show.bilibili.com/api/ticket/order/prepare",
                                         params={"project_id": projectId},
                                         data={
@@ -112,18 +109,63 @@ def main():
                                         },
                                     ).json()
 
+                                    if json2["errno"] != 0:
+                                        print(json2["msg"])
+                                        continue
+
                                     if json2["data"]["shield"]["open"] == 1:
                                         print(
                                             f"遇到验证码 {json2['data']['shield']['naUrl']}"
                                         )
+                                        res = s.post(
+                                            "https://show.bilibili.com/openplatform/verify/tool/geetest/prepare",
+                                            params={"oaccesskey": ""},
+                                            data={
+                                                "verify_type": 1,
+                                                "business": "mall",
+                                                "voucher": json2["data"]["shield"][
+                                                    "voucher"
+                                                ],
+                                                "client_type": "h5",
+                                                "csrf": cookies["bili_jct"],
+                                            },
+                                        ).json()
+
+                                        captcha_id = res["data"]["captcha_id"]  # gt
+                                        challenge = res["data"]["challenge"]
+                                        geetest_voucher = res["data"]["geetest_voucher"]
+
+                                        (
+                                            challenge,
+                                            validate,
+                                        ) = GSession().get_validate(
+                                            captcha_id, challenge
+                                        )
+
+                                        res = s.post(
+                                            "https://show.bilibili.com/openplatform/verify/tool/geetest/check",
+                                            params={"oaccesskey": ""},
+                                            data={
+                                                "success": 1,
+                                                "captcha_id": captcha_id,
+                                                "challenge": challenge,
+                                                "validate": validate,
+                                                "seccode": f"{validate}|jordan",
+                                                "geetest_voucher": geetest_voucher,
+                                                "client_type": "h5",
+                                                "csrf": cookies["bili_jct"],
+                                            },
+                                        ).json()
+                                        if res["code"] != 0:
+                                            print(res["msg"])
+                                            continue
 
                                     if json2["errno"] != 0:
                                         print(json2["errno"], json2["msg"])
                                         continue
 
                                     while True:
-                                        json3 = s.request(
-                                            "POST",
+                                        json3 = s.post(
                                             "https://show.bilibili.com/api/ticket/order/createV2",
                                             params={"project_id": projectId},
                                             data={
