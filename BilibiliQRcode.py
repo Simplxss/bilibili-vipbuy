@@ -44,7 +44,7 @@ class BilibiliQRcode:
             if res["data"]["code"] == 86038:
                 if not self.generate_qrcode():
                     return {}
-            elif res["data"]["code"] != 86090 and res["data"]["code"] == 86101:
+            elif res["data"]["code"] != 86090 and res["data"]["code"] != 86101:
                 break
             print("Scan Result:" + res["data"]["message"])
 
