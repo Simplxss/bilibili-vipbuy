@@ -4,12 +4,13 @@ import time
 import requests
 from requests import utils
 
-from BlibiliQRcode import login_var_qrcode
+from BilibiliQRcode import BilibiliQRcode
 
 
 def main():
     projectId = int(input("会展ID: "))
     count = int(input("抢几张票: "))
+
 
     json0 = requests.request(
         "GET",
@@ -36,8 +37,12 @@ def main():
     skuId = ticket["id"]
     payMoney = ticket["price"]
 
+    bilibili = BilibiliQRcode()
+    bilibili.login()
+    cookies = bilibili.get_sso_login(2)
+
     s = requests.session()
-    s.cookies = utils.cookiejar_from_dict(login_var_qrcode())
+    s.cookies = utils.cookiejar_from_dict(cookies)
 
     json0 = s.request(
         "GET",
