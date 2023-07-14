@@ -117,48 +117,52 @@ def main():
                                         print(
                                             f"遇到验证码 {json2['data']['shield']['naUrl']}"
                                         )
-                                        res = s.post(
-                                            "https://show.bilibili.com/openplatform/verify/tool/geetest/prepare",
-                                            params={"oaccesskey": ""},
-                                            data={
-                                                "verify_type": 1,
-                                                "business": "mall",
-                                                "voucher": json2["data"]["shield"][
-                                                    "voucher"
-                                                ],
-                                                "client_type": "h5",
-                                                "csrf": cookies["bili_jct"],
-                                            },
-                                        ).json()
+                                        try:
+                                            res = s.post(
+                                                "https://show.bilibili.com/openplatform/verify/tool/geetest/prepare",
+                                                params={"oaccesskey": ""},
+                                                data={
+                                                    "verify_type": 1,
+                                                    "business": "mall",
+                                                    "voucher": json2["data"]["shield"][
+                                                        "voucher"
+                                                    ],
+                                                    "client_type": "h5",
+                                                    "csrf": cookies["bili_jct"],
+                                                },
+                                            ).json()
 
-                                        captcha_id = res["data"]["captcha_id"]  # gt
-                                        challenge = res["data"]["challenge"]
-                                        geetest_voucher = res["data"]["geetest_voucher"]
+                                            captcha_id = res["data"]["captcha_id"]  # gt
+                                            challenge = res["data"]["challenge"]
+                                            geetest_voucher = res["data"]["geetest_voucher"]
 
-                                        (
-                                            challenge,
-                                            validate,
-                                        ) = GSession().get_validate(
-                                            captcha_id, challenge
-                                        )
+                                            (
+                                                challenge,
+                                                validate,
+                                            ) = GSession().get_validate(
+                                                captcha_id, challenge
+                                            )
 
-                                        res = s.post(
-                                            "https://show.bilibili.com/openplatform/verify/tool/geetest/check",
-                                            params={"oaccesskey": ""},
-                                            data={
-                                                "success": 1,
-                                                "captcha_id": captcha_id,
-                                                "challenge": challenge,
-                                                "validate": validate,
-                                                "seccode": f"{validate}|jordan",
-                                                "geetest_voucher": geetest_voucher,
-                                                "client_type": "h5",
-                                                "csrf": cookies["bili_jct"],
-                                            },
-                                        ).json()
-                                        if res["code"] != 0:
-                                            print(res["msg"])
-                                            continue
+                                            res = s.post(
+                                                "https://show.bilibili.com/openplatform/verify/tool/geetest/check",
+                                                params={"oaccesskey": ""},
+                                                data={
+                                                    "success": 1,
+                                                    "captcha_id": captcha_id,
+                                                    "challenge": challenge,
+                                                    "validate": validate,
+                                                    "seccode": f"{validate}|jordan",
+                                                    "geetest_voucher": geetest_voucher,
+                                                    "client_type": "h5",
+                                                    "csrf": cookies["bili_jct"],
+                                                },
+                                            ).json()
+                                            if res["code"] != 0:
+                                                print(res["msg"])
+                                                continue
+                                        except:
+                                            print("验证码错误")
+                                            breakpoint()
 
                                     if json2["errno"] != 0:
                                         print(json2["errno"], json2["msg"])
@@ -199,7 +203,7 @@ def main():
                                             break
                                         elif json3["errno"] == 100051:
                                             print("验证超时")
-                                            continue
+                                            break
                                         print(json3["errno"], json3["msg"])
                                     if json3["errno"] == 100009:
                                         break

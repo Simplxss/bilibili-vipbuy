@@ -8,3 +8,4 @@ bilibili-vipbuy script
 Dev By Simplxs
 ## Credits
 Thanks to MliKiowa for [BlibiliQRcode](https://github.com/MliKiowa/BlibiliQRcode)
+Thanks to Yang Libin for [geetest-crack](https://github.com/yanglbme/geetest-crack)
