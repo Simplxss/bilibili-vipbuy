@@ -4,8 +4,12 @@ import time
 import requests
 from requests import utils
 
-from BilibiliQRcode import BilibiliQRcode
-from geetest_session import GSession
+from BilibiliQRcode.BilibiliQRcode import BilibiliQRcode
+
+
+def get_validate(captcha_id, challenge):
+    validate = ""
+    return (captcha_id, challenge, validate)
 
 
 def main():
@@ -134,14 +138,15 @@ def main():
 
                                             captcha_id = res["data"]["captcha_id"]  # gt
                                             challenge = res["data"]["challenge"]
-                                            geetest_voucher = res["data"]["geetest_voucher"]
+                                            geetest_voucher = res["data"][
+                                                "geetest_voucher"
+                                            ]
 
                                             (
                                                 challenge,
+                                                challenge,
                                                 validate,
-                                            ) = GSession().get_validate(
-                                                captcha_id, challenge
-                                            )
+                                            ) = get_validate(captcha_id, challenge)
 
                                             res = s.post(
                                                 "https://show.bilibili.com/openplatform/verify/tool/geetest/check",

@@ -2,7 +2,7 @@
 
 bilibili-vipbuy script
 
-**please notice that geetest pass is out of data**
+**Some popular show need to pass geetest CAPTCHE**
 
 ## Use It
 
@@ -17,5 +17,3 @@ Dev By Simplxs
 ## Credits
 
 Thanks to MliKiowa for [BlibiliQRcode](https://github.com/MliKiowa/BlibiliQRcode)
-
-Thanks to Yang Libin for [geetest-crack](https://github.com/yanglbme/geetest-crack)

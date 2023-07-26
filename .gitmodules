@@ -1,0 +1,3 @@
+[submodule "BilibiliQRcode"]
+	path = BilibiliQRcode
+	url = https://github.com/MliKiowa/BilibiliQRcode.git
