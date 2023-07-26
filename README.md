@@ -16,4 +16,4 @@ Dev By Simplxs
 
 ## Credits
 
-Thanks to MliKiowa for [BlibiliQRcode](https://github.com/MliKiowa/BlibiliQRcode)
+Thanks to MliKiowa for [BilibiliQRcode](https://github.com/MliKiowa/BilibiliQRcode)
