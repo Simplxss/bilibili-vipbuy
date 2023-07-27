@@ -6,9 +6,11 @@ bilibili-vipbuy script
 
 ## Use It
 
-1. Download the project
-2. Install requirement environment
-3. Run bilibili-vipbuy.py
+1. git clone https://github.com/Simplxss/bilibili-vipbuy.git
+2. git submodule init
+3. git submodule update
+4. pip install -r requirements.txt
+5. python bilibili-vipbuy.py
 
 ## About
 
