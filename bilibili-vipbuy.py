@@ -1,55 +1,49 @@
 import json
 import random
 import time
-import requests
-from requests import utils
 
 from BilibiliQRcode.BilibiliQRcode import BilibiliQRcode
+from BilibiliShow import BilibiliShow
+from BilibiliVgate import BilibiliVgate
 
-
-def get_validate(captcha_id, challenge):
-    validate = ""
-    return (captcha_id, challenge, validate)
+from geetest import get_validate
 
 
 def main():
+    bilibili = BilibiliQRcode()
+    cookies = bilibili.login()
+    
     projectId = int(input("会展ID: "))
     count = int(input("抢几张票: "))
 
-    json0 = requests.get(
-        "https://show.bilibili.com/api/ticket/project/get",
-        params={"version": 134, "id": projectId, "project_id": projectId},
-    ).json()
-    id_bind = json0["data"]["id_bind"]
-    need_contact = json0["data"]["need_contact"]
+    show = BilibiliShow(cookies)
+    json0 = show.get_info(projectId)
+    idBind = json0["data"]["id_bind"]
+    needContact = json0["data"]["need_contact"]
+    buyerInfo = json0["data"]["buyer_info"]
     for i in json0["data"]["screen_list"]:
         print(i["name"])
-    day = int(input(f"抢第几天的票(1~{len(json0['data']['screen_list'])}): ")) - 1
-    if day >= len(json0["data"]["screen_list"]) or day < 0:
-        print("日期不存在")
+    screen_length = len(json0['data']['screen_list'])
+    screenType = int(input(f"抢第几场的票(1~{screen_length}): ")) - 1
+    if screenType >= screen_length or screenType < 0:
+        print("场次不存在")
         return
-    screen = json0["data"]["screen_list"][day]
+    screen = json0["data"]["screen_list"][screenType]
     screenId = screen["id"]
     for i in screen["ticket_list"]:
         print(i["desc"], i["price"])
-    ticketType = int(input(f"抢第几种票(1~{len(screen['ticket_list'])}): ")) - 1
-    if ticketType >= len(screen["ticket_list"]) or ticketType < 0:
+    ticket_length = len(screen["ticket_list"])
+    ticketType = int(input(f"抢第几种的票(1~{ticket_length}): ")) - 1
+    if ticketType >= ticket_length or ticketType < 0:
         print("票种不存在")
         return
     ticket = screen["ticket_list"][ticketType]
     skuId = ticket["id"]
     payMoney = ticket["price"]
+    isPackage = ticket["is_package"]
+    packageNum = ticket["package_num"]
 
-    bilibili = BilibiliQRcode()
-    cookies = bilibili.login()
-
-    s = requests.session()
-    s.cookies = utils.cookiejar_from_dict(cookies)
-
-    json0 = s.get(
-        "https://show.bilibili.com/api/ticket/buyer/list",
-        params={"project_id": projectId, "src": "ticket"},
-    ).json()
+    json0 = show.get_buyer(projectId)
     if count > len(json0["data"]["list"]):
         print("购票数大于购买人数, 请前往b站手动添加购买人")
         return
@@ -80,138 +74,98 @@ def main():
             }
         )
 
-    buyer_info = json.dumps(list, ensure_ascii=False)
+    buyers = json.dumps(list, ensure_ascii=False)
 
     print("开始抢票")
 
     while True:
         try:
-            json1 = requests.get(
-                "https://show.bilibili.com/api/ticket/project/get",
-                params={"version": 134, "id": projectId, "project_id": projectId},
-            ).json()
+            json1 = show.get_info(projectId)
             if json1["errno"] != 0:
                 continue
             for i in json1["data"]["screen_list"]:
                 if i["id"] == screenId:
                     for j in i["ticket_list"]:
                         if j["id"] == skuId:
-                            if j["clickable"]:
-                                print(time.ctime(), "有票了")
-                                while True:
-                                    json2 = s.post(
-                                        "https://show.bilibili.com/api/ticket/order/prepare",
-                                        params={"project_id": projectId},
-                                        data={
-                                            "project_id": projectId,
-                                            "screen_id": screenId,
-                                            "order_type": 1,
-                                            "count": count,
-                                            "sku_id": skuId,
-                                            "token": "",
-                                            "ticket_agent": "",
-                                        },
-                                    ).json()
+                            # if j["clickable"]:
+                            #     print(time.ctime(), "有票了")
+                            while True:
+                                json2 = show.get_token(
+                                    projectId, screenId, count, skuId, buyerInfo)
 
-                                    if json2["errno"] != 0:
-                                        print(json2["msg"])
-                                        continue
+                                if json2["errno"] == -401:
+                                    ga = json2["data"]["ga_data"]
+                                    print(
+                                        f"需要验证: {ga["decisions"]}")
+                                    try:
+                                        vgate = BilibiliVgate(cookies)
+                                        res = vgate.get_geetest(
+                                            ga["riskParams"]["buvid"],
+                                            ga["riskParams"]["decision_type"],
+                                            ga["riskParams"]["ip"],
+                                            ga["riskParams"]["mid"],
+                                            ga["riskParams"]["origin_scene"],
+                                            ga["riskParams"]["scene"],
+                                            ga["riskParams"]["ua"],
+                                            ga["riskParams"]["v_voucher"])
 
-                                    if json2["data"]["shield"]["open"] == 1:
-                                        print(
-                                            f"遇到验证码 {json2['data']['shield']['naUrl']}"
-                                        )
-                                        try:
-                                            res = s.post(
-                                                "https://show.bilibili.com/openplatform/verify/tool/geetest/prepare",
-                                                params={"oaccesskey": ""},
-                                                data={
-                                                    "verify_type": 1,
-                                                    "business": "mall",
-                                                    "voucher": json2["data"]["shield"][
-                                                        "voucher"
-                                                    ],
-                                                    "client_type": "h5",
-                                                    "csrf": cookies["bili_jct"],
-                                                },
-                                            ).json()
-
-                                            captcha_id = res["data"]["captcha_id"]  # gt
-                                            challenge = res["data"]["challenge"]
-                                            geetest_voucher = res["data"][
-                                                "geetest_voucher"
-                                            ]
-
-                                            (
-                                                challenge,
-                                                challenge,
-                                                validate,
-                                            ) = get_validate(captcha_id, challenge)
-
-                                            res = s.post(
-                                                "https://show.bilibili.com/openplatform/verify/tool/geetest/check",
-                                                params={"oaccesskey": ""},
-                                                data={
-                                                    "success": 1,
-                                                    "captcha_id": captcha_id,
-                                                    "challenge": challenge,
-                                                    "validate": validate,
-                                                    "seccode": f"{validate}|jordan",
-                                                    "geetest_voucher": geetest_voucher,
-                                                    "client_type": "h5",
-                                                    "csrf": cookies["bili_jct"],
-                                                },
-                                            ).json()
-                                            if res["code"] != 0:
-                                                print(res["msg"])
-                                                continue
-                                        except:
-                                            print("验证码错误")
-                                            breakpoint()
-
-                                    if json2["errno"] != 0:
-                                        print(json2["errno"], json2["msg"])
-                                        continue
-
-                                    while True:
-                                        json3 = s.post(
-                                            "https://show.bilibili.com/api/ticket/order/createV2",
-                                            params={"project_id": projectId},
-                                            data={
-                                                "project_id": projectId,
-                                                "screen_id": screenId,
-                                                "count": count,
-                                                "pay_money": payMoney,
-                                                "order_type": 1,
-                                                "timestamp": int(time.time() * 1000),
-                                                "id_bind": id_bind,
-                                                "need_contact": need_contact,
-                                                "is_package": 0,
-                                                "package_num": 1,
-                                                "contactInfo": [],
-                                                "sku_id": skuId,
-                                                "coupon_code": "",
-                                                "again": 0,
-                                                "token": json2["data"]["token"],
-                                                "deviceId": "22c943523458064379f38455d0bd0578",
-                                                "buyer_info": buyer_info,
-                                            },
-                                        ).json()
-
-                                        if json3["errno"] == 0:
-                                            print("抢到了，请尽快去支付")
-                                            return
-                                        elif json3["errno"] == 100001:
+                                        if res["code"] != 0:
+                                            print(f"获取 geetest 验证失败: {
+                                                  res["message"]}")
                                             continue
-                                        elif json3["errno"] == 100009:
-                                            print("当前票被抢")
-                                            break
-                                        elif json3["errno"] == 100051:
-                                            print("验证超时")
-                                            break
-                                        print(json3["errno"], json3["msg"])
-                                    if json3["errno"] == 100009:
+
+                                        token = res["data"]["token"]
+                                        gt = res["data"]["geetest"]["gt"]
+                                        challenge = res["data"]["geetest"]["challenge"]
+
+                                        (
+                                            seccode,
+                                            validate
+                                        ) = get_validate(gt, challenge)
+
+                                        res = vgate.verify(
+                                            token, challenge, seccode, validate)
+
+                                        if res["code"] != 0:
+                                            print(f"验证失败: {res["message"]}")
+                                            continue
+
+                                        json2 = show.get_token(
+                                            projectId, screenId, count, skuId, token, token)
+
+                                        if json2["errno"] != 0:
+                                            print(json2["errno"], json2["msg"])
+                                            continue
+                                    except:
+                                        print("验证错误")
+                                        breakpoint()
+                                elif json2["errno"] != 0:
+                                    # 100041 您的账号存在异常，暂时无法购票
+                                    print(json2["errno"], json2["msg"])
+                                    continue
+
+                                token = json2["data"]["token"]
+                                while True:
+                                    json3 = show.create_order(
+                                        projectId, screenId, count, payMoney, idBind, isPackage, packageNum, needContact, skuId, token, buyers)
+
+                                    if json3["errno"] == 0:
+                                        print("抢到了，请尽快去支付")
+                                        return
+                                    elif json3["errno"] == 100001:
+                                        # 前方拥堵，请重试
+                                        # 请慢一点
+                                        time.sleep(random.randint(1, 3))
+                                        continue
+                                    elif json3["errno"] == 100009:
+                                        print("当前票被抢")
                                         break
+                                    elif json3["errno"] == 100051:
+                                        print("验证超时")
+                                        break
+                                    print(json3["errno"], json3["msg"])
+                                if json3["errno"] == 100009:
+                                    break
         except Exception as e:
             print(e)
         time.sleep(random.randint(8, 15))
